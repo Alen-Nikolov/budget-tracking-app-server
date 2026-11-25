@@ -39,3 +39,30 @@ Production `JWT_SECRET`: generate it yourself (e.g. `openssl rand -base64 48`) a
 - Access token (JWT): 1 hour. Refresh token: 90 days, single use, replaced on every `POST /refresh` (sliding window).
 - `POST /refresh {refreshToken}` → new `accessToken` + new `refreshToken`. `POST /logout {refreshToken}` revokes it server-side.
 - `/login`: 5 failed attempts per email and 20 per IP per hour → 429 with `Retry-After`. Tune under `app.login-rate-limit`.
+
+## Email verification
+- `/register` sends a link (`GET /verify-email?token=...`, valid 24 h); `/login` refuses unverified accounts. See `docs/API.md`.
+- **No mail server configured (default for local dev):** the link is printed in the server console (`Verification link for ...`).
+- **Real emails:** set `SPRING_MAIL_HOST`, `SPRING_MAIL_PORT` (usually 587), `SPRING_MAIL_USERNAME`, `SPRING_MAIL_PASSWORD`,
+  `SPRING_MAIL_PROPERTIES_MAIL_SMTP_AUTH=true`, `SPRING_MAIL_PROPERTIES_MAIL_SMTP_STARTTLS_ENABLE=true`, and `MAIL_FROM` (any SMTP provider works: Brevo, Mailgun, Resend, SendGrid, Gmail app password...).
+- `PUBLIC_BASE_URL`: address of this server as seen from the user's phone/browser (NOT localhost for a real phone).
+- Redirect targets after clicking: `VERIFY_WEB_REDIRECT_URL`, `VERIFY_ANDROID_REDIRECT_URL`.
+
+## Deploying
+Everything is configured through environment variables; nothing in the code refers to localhost except the defaults.
+
+| Variable | Purpose |
+|---|---|
+| `PORT` | port to listen on (hosts set this; default 8080) |
+| `DB_URL`, `DB_USERNAME`, `DB_PASSWORD` | `jdbc:postgresql://HOST:5432/DBNAME` (+ `?sslmode=require` if needed) |
+| `JWT_SECRET` | long random secret (`openssl rand -base64 48`) |
+| `CORS_ALLOWED_ORIGINS` | admin panel origin, e.g. `https://admin.yourapp.com` (no trailing slash) |
+| `PUBLIC_BASE_URL` | this server's public https address (used in the verification email link) |
+| `VERIFY_WEB_REDIRECT_URL`, `VERIFY_ANDROID_REDIRECT_URL` | where the email link sends the user afterwards |
+| `SPRING_MAIL_*`, `MAIL_FROM` | SMTP settings; send from your own domain (SPF/DKIM) |
+| `FORWARD_HEADERS_STRATEGY` | set to `framework` when behind the host's proxy/load balancer, so the login rate limit sees real client IPs. Leave unset locally. |
+
+- Health check for the host: `GET /actuator/health` (public, no details, reports DB status).
+- Build a jar: `./mvnw package` then `java -jar target/budget-tracker-server-*.jar`. Or build the `Dockerfile` (Java 27, runs as non-root).
+- Tables are created by Flyway on first start. Create an admin afterwards with `scripts/make-admin.sql`.
+- The login rate limiter is in memory: run a single instance.

@@ -3,10 +3,13 @@ package com.budgettracker.auth;
 import com.budgettracker.auth.AuthDtos.AuthResponse;
 import com.budgettracker.auth.AuthDtos.LoginRequest;
 import com.budgettracker.auth.AuthDtos.RegisterRequest;
+import com.budgettracker.auth.AuthDtos.RegistrationResponse;
 import com.budgettracker.common.ConflictException;
 import com.budgettracker.security.JwtService;
 import com.budgettracker.user.User;
 import com.budgettracker.user.UserRepository;
+import com.budgettracker.verification.ClientType;
+import com.budgettracker.verification.VerificationService;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.AuthenticationException;
@@ -23,25 +26,29 @@ public class AuthService {
     private final JwtService jwt;
     private final RefreshTokenService refreshTokens;
     private final LoginRateLimiter rateLimiter;
+    private final VerificationService verification;
 
     public AuthService(UserRepository users, PasswordEncoder encoder, AuthenticationManager authenticationManager,
-                       JwtService jwt, RefreshTokenService refreshTokens, LoginRateLimiter rateLimiter) {
+                       JwtService jwt, RefreshTokenService refreshTokens, LoginRateLimiter rateLimiter,
+                       VerificationService verification) {
         this.users = users;
         this.encoder = encoder;
         this.authenticationManager = authenticationManager;
         this.jwt = jwt;
         this.refreshTokens = refreshTokens;
         this.rateLimiter = rateLimiter;
+        this.verification = verification;
     }
 
     @Transactional
-    public AuthResponse register(RegisterRequest req) {
+    public RegistrationResponse register(RegisterRequest req) {
         String email = normalize(req.email());
         if (users.existsByEmail(email)) {
             throw new ConflictException("Email is already registered");
         }
         User user = users.save(new User(email, encoder.encode(req.password())));
-        return respond(user);
+        verification.sendVerification(user, req.client() != null ? req.client() : ClientType.WEB);
+        return new RegistrationResponse("Verification email sent. Please check your inbox.", user.getEmail());
     }
 
     public AuthResponse login(LoginRequest req, String clientIp) {
@@ -54,7 +61,11 @@ public class AuthService {
             throw e; // -> generic 401
         }
         rateLimiter.reset(email);
-        return respond(users.findByEmail(email).orElseThrow());
+        User user = users.findByEmail(email).orElseThrow();
+        if (!user.isEmailVerified()) {
+            throw new EmailNotVerifiedException();
+        }
+        return respond(user);
     }
 
     /** Swaps a valid refresh token for a new access token + a NEW refresh token (rotation). */

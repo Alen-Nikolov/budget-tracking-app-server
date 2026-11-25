@@ -3,6 +3,7 @@ package com.budgettracker.common;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
+import com.budgettracker.auth.EmailNotVerifiedException;
 import com.budgettracker.auth.InvalidRefreshTokenException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -15,7 +16,10 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 @RestControllerAdvice
 public class ApiExceptionHandler {
 
-    public record ErrorResponse(String message, Map<String, String> fieldErrors) {
+    public record ErrorResponse(String message, Map<String, String> fieldErrors, String code) {
+        public ErrorResponse(String message, Map<String, String> fieldErrors) {
+            this(message, fieldErrors, null);
+        }
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
@@ -39,6 +43,11 @@ public class ApiExceptionHandler {
     @ExceptionHandler(ConflictException.class)
     public ResponseEntity<ErrorResponse> conflict(ConflictException ex) {
         return ResponseEntity.status(HttpStatus.CONFLICT).body(new ErrorResponse(ex.getMessage(), null));
+    }
+
+    @ExceptionHandler(EmailNotVerifiedException.class)
+    public ResponseEntity<ErrorResponse> notVerified(EmailNotVerifiedException ex) {
+        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(new ErrorResponse(ex.getMessage(), null, "EMAIL_NOT_VERIFIED"));
     }
 
     @ExceptionHandler(InvalidRefreshTokenException.class)

@@ -1,0 +1,22 @@
+# Copy this file to config/application.properties and fill in your values.
+# Spring Boot loads config/application.properties automatically; it overrides application.yml.
+# The real file is git-ignored - never commit it.
+
+# --- Database ---
+spring.datasource.password=your-postgres-password
+#spring.datasource.username=postgres
+
+# --- JWT (required in production, >= 32 chars; e.g. openssl rand -base64 48) ---
+#app.jwt.secret=
+
+# --- Email (Brevo example) ---
+spring.mail.host=smtp-relay.brevo.com
+spring.mail.port=587
+spring.mail.username=your-brevo-smtp-login
+spring.mail.password=your-brevo-smtp-key
+spring.mail.properties.mail.smtp.auth=true
+spring.mail.properties.mail.smtp.starttls.enable=true
+app.mail.from=your-verified-sender@example.com
+
+# --- Links in the verification email ---
+#app.verification.public-base-url=http://localhost:8080

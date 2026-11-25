@@ -24,3 +24,30 @@ app:
     max-failures-per-email: 5
     max-failures-per-ip: 20
     window: 1h
+  mail:
+    from: ${MAIL_FROM:noreply@budgettracker.local}
+  verification:
+    expiration: 24h
+    resend-cooldown: 60s
+    # Public address of THIS server, as reachable by the person clicking the link in their email.
+    public-base-url: ${PUBLIC_BASE_URL:http://localhost:8080}
+    web-redirect-url: ${VERIFY_WEB_REDIRECT_URL:http://localhost:3000/email-verified}
+    android-redirect-url: ${VERIFY_ANDROID_REDIRECT_URL:budgettracker://email-verified}
+
+server:
+  port: ${PORT:8080}                                  # hosts usually provide PORT
+  # Set FORWARD_HEADERS_STRATEGY=framework ONLY when running behind the host's trusted proxy/load balancer,
+  # so the real client IP (for the login rate limit) is read from X-Forwarded-For.
+  forward-headers-strategy: ${FORWARD_HEADERS_STRATEGY:none}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health                               # nothing else is exposed
+  endpoint:
+    health:
+      show-details: never
+  health:
+    mail:
+      enabled: false                                  # an SMTP hiccup should not mark the server as down

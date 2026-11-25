@@ -4,6 +4,7 @@ import com.budgettracker.auth.AuthDtos.AuthResponse;
 import com.budgettracker.auth.AuthDtos.LoginRequest;
 import com.budgettracker.auth.AuthDtos.RefreshRequest;
 import com.budgettracker.auth.AuthDtos.RegisterRequest;
+import com.budgettracker.auth.AuthDtos.RegistrationResponse;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
@@ -23,7 +24,7 @@ public class AuthController {
 
     @PostMapping("/register")
     @ResponseStatus(HttpStatus.CREATED)
-    public AuthResponse register(@Valid @RequestBody RegisterRequest req) {
+    public RegistrationResponse register(@Valid @RequestBody RegisterRequest req) {
         return auth.register(req);
     }
 

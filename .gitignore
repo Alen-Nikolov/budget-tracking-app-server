@@ -29,3 +29,6 @@ target/
 *.iml
 .vscode/
 .env
+
+# Local secrets
+config/application.properties
